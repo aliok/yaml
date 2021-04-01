@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  name: standalone-request-logger
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    run: standalone-request-logger
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    run: standalone-request-logger
+  name: standalone-request-logger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: standalone-request-logger
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: standalone-request-logger
+    spec:
+      containers:
+        - image: docker.io/aliok/standalone-request-logger:latest
+          name: standalone-request-logger
+          ports:
+            - containerPort: 8080
+          env:
+            - name: LATENCY
+              value: "0"
+          resources: {}
