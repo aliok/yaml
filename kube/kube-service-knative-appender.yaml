@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  name: appender
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    run: appender
+status:
+  loadBalancer: {}
+---
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: appender
+  name: appender
+spec:
+  containers:
+  - image: gcr.io/knative-releases/knative.dev/eventing/cmd/appender
+    name: appender
+    ports:
+    - containerPort: 8080
+    resources: {}
+    env:
+      - name: MESSAGE
+        value: " - Handled by 0"
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
