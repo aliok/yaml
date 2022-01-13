@@ -50,7 +50,7 @@ k delete -f kube/kube-service-knative-appender.yaml
 k apply -f kube/kube-service-knative-event-display.yaml
 k apply -f kube/kube-service-failing-sink.yaml
 k apply -f kafka/kafka-channel-v1beta1-dls.yaml
-k apply -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-failing-sink.yaml
+k apply -f kafka/subscription----kafka-channel-v1beta1-dls----kube-service-failing-sink.yaml
 
 k apply -f eventing/pingsource-v1-to-kafka-channel.yaml
 
@@ -101,4 +101,26 @@ event-display Data,
 event-display   {
 event-display     "message": "Hello world!"
 event-display   }
+```
+
+### Subscription with DLS (no DLS on channel):
+
+```
+k apply -f kube/kube-service-knative-event-display.yaml
+k apply -f kube/kube-service-failing-sink.yaml
+k apply -f kafka/kafka-channel-v1beta1-blank.yaml
+k apply -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-failing-sink--kube-service-event-display.yaml
+
+k apply -f eventing/pingsource-v1-to-kafka-channel.yaml
+
+stern -n default .
+```
+
+Cleanup:
+```
+k delete -f eventing/pingsource-v1-to-kafka-channel.yaml
+k delete -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-failing-sink--kube-service-event-display.yaml
+k delete -f kube/kube-service-failing-sink.yaml
+k delete -f kafka/kafka-channel-v1beta1-blank.yaml
+k delete -f kube/kube-service-knative-event-display.yaml
 ```
