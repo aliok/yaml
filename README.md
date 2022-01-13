@@ -12,7 +12,7 @@ k apply -f kafka/subscription----kafka-channel-v1beta1-blank---kube-service-knat
 
 k apply -f eventing/pingsource-v1-to-kafka-channel.yaml
 
-stern -n default
+stern -n default .
 # OUTPUT:
 
 appender 2022/01/10 14:22:00 Received a new event:
@@ -44,3 +44,61 @@ k delete -f kube/kube-service-knative-event-display.yaml
 k delete -f kube/kube-service-knative-appender.yaml
 ```
 
+### KafkaChannel with DLS:
+
+```
+k apply -f kube/kube-service-knative-event-display.yaml
+k apply -f kube/kube-service-failing-sink.yaml
+k apply -f kafka/kafka-channel-v1beta1-dls.yaml
+k apply -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-failing-sink.yaml
+
+k apply -f eventing/pingsource-v1-to-kafka-channel.yaml
+
+stern -n default .
+```
+
+Cleanup:
+```
+k delete -f eventing/pingsource-v1-to-kafka-channel.yaml
+k delete -f kafka/subscription----kafka-channel-v1beta1-dls----kube-service-failing-sink.yaml
+k delete -f kube/kube-service-failing-sink.yaml
+k delete -f kafka/kafka-channel-v1beta1-dls.yaml
+k delete -f kube/kube-service-knative-event-display.yaml
+```
+
+Output:
+```
+failing-sink =======================
+failing-sink Request headers:
+failing-sink { 'user-agent': 'Vert.x-WebClient/4.2.3',
+failing-sink   'ce-specversion': '1.0',
+failing-sink   'ce-id': '26e45ed0-31b7-45c8-a749-ed207223227e',
+failing-sink   'ce-source': '/apis/v1/namespaces/default/pingsources/test-ping-source',
+failing-sink   'ce-type': 'dev.knative.sources.ping',
+failing-sink   'content-type': 'application/json',
+failing-sink   'ce-time': '2022-01-13T12:17:00.059642378Z',
+failing-sink   'content-length': '27',
+failing-sink   host: 'failing-sink.default.svc.cluster.local',
+failing-sink   traceparent: '00-142dcf3d243b3546bd8c8709dcb1747f-2d01179ddd49609b-01' }
+failing-sink
+failing-sink Request body - raw:
+failing-sink <Buffer 7b 22 6d 65 73 73 61 67 65 22 3a 20 22 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 22 7d>
+failing-sink
+failing-sink Request body - to string:
+failing-sink {"message": "Hello world!"}
+failing-sink =======================
+failing-sink
+failing-sink SLEEP 0 ms
+event-display ☁️  cloudevents.Event
+event-display Context Attributes,
+event-display   specversion: 1.0
+event-display   type: dev.knative.sources.ping
+event-display   source: /apis/v1/namespaces/default/pingsources/test-ping-source
+event-display   id: 26e45ed0-31b7-45c8-a749-ed207223227e
+event-display   time: 2022-01-13T12:17:00.059642378Z
+event-display   datacontenttype: application/json
+event-display Data,
+event-display   {
+event-display     "message": "Hello world!"
+event-display   }
+```
