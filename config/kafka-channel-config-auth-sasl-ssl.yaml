@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-channel-config
+  namespace: knative-eventing
+data:
+  bootstrap.servers: "my-cluster-kafka-bootstrap.kafka:9094"
+  default.topic.partitions: "2"
+  default.topic.replication.factor: "2"
+  auth.secret.ref.name: strimzi-sasl-secret

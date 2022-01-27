@@ -154,3 +154,32 @@ k delete -f kube/kube-service-knative-event-display.yaml
 k apply -f config/kafka-channel-config-no-auth.yaml
 ```
 
+### KafkaChannel with Auth - SASL_SSL
+
+```
+# create secret that is to be referenced in KafkaChannel configmap:
+./kafka/kafka-channel-auth-sasl-ssl.sh
+
+# update KafkaChannel configmap
+k apply -f config/kafka-channel-config-auth-sasl-ssl.yaml
+
+# create everything
+k apply -f kube/kube-service-knative-event-display.yaml
+k apply -f kafka/kafka-channel-v1beta1-blank.yaml
+k apply -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-knative-event-display.yaml
+
+k apply -f eventing/pingsource-v1-to-kafka-channel.yaml
+
+stern -n default .
+```
+
+Cleanup:
+```
+k delete -f eventing/pingsource-v1-to-kafka-channel.yaml
+k delete -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-knative-event-display.yaml
+k delete -f kafka/kafka-channel-v1beta1-blank.yaml
+k delete -f kube/kube-service-knative-event-display.yaml
+
+k apply -f config/kafka-channel-config-no-auth.yaml
+```
+
