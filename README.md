@@ -1,5 +1,28 @@
 ## KafkaChannel
 
+### KafkaChannel with single subscription
+
+```
+# create everything
+k apply -f kube/kube-service-knative-event-display.yaml
+k apply -f kafka/kafka-channel-v1beta1-blank.yaml
+k apply -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-knative-event-display.yaml
+
+k apply -f eventing/pingsource-v1-to-kafka-channel.yaml
+
+stern -n default .
+```
+
+Cleanup:
+```
+k delete -f eventing/pingsource-v1-to-kafka-channel.yaml
+k delete -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-knative-event-display.yaml
+k delete -f kafka/kafka-channel-v1beta1-blank.yaml
+k delete -f kube/kube-service-knative-event-display.yaml
+```
+
+
+
 ### Subscription with reply:
 
 ```
