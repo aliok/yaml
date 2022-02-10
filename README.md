@@ -1,5 +1,24 @@
 ## KafkaChannel
 
+### Install things w/o auth:
+
+```
+./100_scripts/01-kn-serving.sh
+./100_scripts/02-kn-eventing.sh
+./100_scripts/03-strimzi.sh
+./100_scripts/04-kn-kafka.sh
+```
+
+### Install things with TLS auth:
+
+```
+./100_scripts/01-kn-serving.sh
+./100_scripts/02-kn-eventing.sh
+./100_scripts/03-strimzi_auth.sh
+./100_scripts/04-kn-kafka.sh
+./100_scripts/05-kn-kafka-auth-tls.sh
+```
+
 ### KafkaChannel with single subscription
 
 ```
@@ -20,7 +39,6 @@ k delete -f kafka/subscription----kafka-channel-v1beta1-blank----kube-service-kn
 k delete -f kafka/kafka-channel-v1beta1-blank.yaml
 k delete -f kube/kube-service-knative-event-display.yaml
 ```
-
 
 
 ### Subscription with reply:
