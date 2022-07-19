@@ -253,3 +253,25 @@ k delete -f kube/kube-service-knative-event-display.yaml
 k apply -f config/kafka-channel-config-no-auth.yaml
 ```
 
+### KafkaBroker namespaced - event flow with trigger and pingSource
+
+```
+# create everything
+k apply -f kube/kube-service-knative-event-display.yaml
+k apply -f kafka-broker/kafka-broker-namespaced.yaml
+k apply -f kafka-broker/trigger-v1----kafka-broker-namespaced----kube-service-knative-event-display.yaml
+
+k apply -f kafka-broker/pingsource-v1-to-kafka-broker-namespaced.yaml
+
+stern -n default .
+```
+
+Cleanup:
+```
+k delete -f kafka-broker/pingsource-v1-to-kafka-broker-namespaced.yaml
+
+k delete -f kafka-broker/trigger-v1----kafka-broker-namespaced----kube-service-knative-event-display.yaml
+k delete -f kafka-broker/kafka-broker-namespaced.yaml
+k delete -f kube/kube-service-knative-event-display.yaml
+```
+
