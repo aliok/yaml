@@ -275,3 +275,24 @@ k delete -f kafka-broker/kafka-broker-namespaced.yaml
 k delete -f kube/kube-service-knative-event-display.yaml
 ```
 
+### KafkaBroker namespaced - garbage collection of the namespaced dataplane
+```
+# create everything
+k apply -f kafka-broker/kafka-broker-namespaced.yaml
+k apply -f kafka-broker/kafka-broker-namespaced-2.yaml
+
+# watch owner refs of the dispatcher/receiver deployment
+k get deployments kafka-broker-dispatcher -o jsonpath='{range .metadata.ownerReferences[*]}{"\t- "}{@}{"\n"}{end}'
+
+#ex
+# - {"apiVersion":"eventing.knative.dev/v1","blockOwnerDeletion":true,"controller":false,"kind":"Broker","name":"default","uid":"..."}
+# - {"apiVersion":"eventing.knative.dev/v1","blockOwnerDeletion":true,"controller":false,"kind":"Broker","name":"default2","uid":"..."}
+```
+
+Cleanup:
+```
+k delete -f kafka-broker/kafka-broker-namespaced.yaml
+k delete -f kafka-broker/kafka-broker-namespaced-2.yaml
+
+# There must be no dataplane pods remaining
+```
