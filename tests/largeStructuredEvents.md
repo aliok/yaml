@@ -48,7 +48,7 @@ Create a large event payload:
 rm payload.json || true
 echo -n '{"specversion":"1.0","type":"dev.knative.samples.helloworld","source":"dev.knative.samples/helloworldsource","id":"536808d3-88be-4077-9d7a-a3f162705f79","data":{"msg":"Hello Knative!"' >> payload.json
 
-max=100000
+max=25000
 for i in `seq 1 $max`
 do
   echo -n ',"var'"$i"'":"'"$i"'"' >> payload.json
@@ -63,10 +63,28 @@ ls -laht payload.json
 Send the large payload N times
 ```shell
 # Send it N times
-max=100
+max=1000
 for i in `seq 1 $max`
 do
   echo "Sending event $i/$max"
   curl -X POST -H "Content-Type: application/cloudevents+json" "http://kafka-broker-ingress.knative-eventing.svc.cluster.local/default/default" -d @payload.json &
+done
+```
+
+Try sending small and binary event N times to see the difference
+```shell
+max=10000
+for i in `seq 1 $max`
+do
+  echo "Sending event $i/$max"
+  curl -v "http://kafka-broker-ingress.knative-eventing.svc.cluster.local/default/default" \
+      -X POST \
+      -H "Ce-Specversion: 1.0" \
+      -H "Ce-Type: org.apache.camel.event" \
+      -H "Ce-Source: knative://endpoint/camel-event-display?apiVersion=serving.knative.dev%2Fv1&kind=Service" \
+      -H "Ce-time: 2020-12-02T13:49:13.77Z" \
+      -H "Ce-Id: 536808d3-88be-4077-9d7a-a3f162705f79" \
+      -H "Content-Type: application/json" \
+      -d '{"msg":"Hello Knative!"}' &
 done
 ```
