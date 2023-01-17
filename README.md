@@ -297,6 +297,10 @@ k delete -f kafka-broker/kafka-broker-namespaced.yaml
 k delete -f kube/kube-service-knative-event-display.yaml
 ```
 
+```shell
+k delete pingsources -A --all && k delete triggers -A --all && k delete brokers -A --all &&  k delete knativekafkas -A --all && k delete knativeservings -A --all && k delete knativeeventings -A --all && k delete subscriptions.operators.coreos.com -n openshift-serverless serverless-operator && k delete csv -n openshift-serverless serverless-operator.v1.27.0 && k delete catalogsources.operators.coreos.com -n openshift-marketplace serverless-operator
+```
+
 ### KafkaBroker namespaced - garbage collection of the namespaced dataplane
 ```
 # create everything
@@ -518,4 +522,19 @@ k delete -f kafka-broker/pingsource-v1-to-kafka-broker-namespaced.yaml
 k delete -f kafka-broker/trigger-v1----kafka-broker-namespaced----kube-service-knative-event-display.yaml
 k delete -f kafka-broker/kafka-broker-namespaced.yaml
 k delete -f kube/kube-service-knative-event-display.yaml
+```
+
+### Sandbox test - PingSource to Kube Service
+
+```shell
+k apply -f sandbox/kube-service-knative-event-display.yaml
+k apply -f sandbox/pingsource-v1-to-kube-service-knative-event-display.yaml
+
+stern -n aliok-dev .
+```
+
+Cleanup:
+```shell
+k delete -f sandbox/pingsource-v1-to-kube-service-knative-event-display.yaml
+k delete -f sandbox/kube-service-knative-event-display.yaml
 ```
