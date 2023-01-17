@@ -270,7 +270,7 @@ Cleanup:
 ```
 k delete -f kafka-broker/pingsource-v1-to-kafka-broker-namespaced.yaml
 
-k delete -f kafka-broker/trigger-v1----kafka-broker-namespaced----kube-service-knative-event-display.yaml
+k delete -f kafka-broker/trigger-v1----kafka-broker----kube-service-knative-event-display.yaml
 k delete -f kafka-broker/kafka-broker-namespaced.yaml
 k delete -f kube/kube-service-knative-event-display.yaml
 ```
@@ -317,4 +317,205 @@ k delete -f kafka-broker/kafka-broker-namespaced.yaml
 k delete -f kafka-broker/kafka-broker-namespaced-2.yaml
 
 # There must be no dataplane pods remaining
+```
+
+### KafkaSource - no auth - simple case
+
+```
+k apply -f kube/kube-service-knative-event-display.yaml
+k apply -f kafka/kafka-source-v1beta1----kube-service-knative-event-display.yaml
+```
+
+Cleanup:
+```
+k delete -f kafka/kafka-source-v1beta1----kube-service-knative-event-display.yaml
+k delete -f kube/kube-service-knative-event-display.yaml
+```
+
+### KafkaSource - no auth - simple case - to Knative Service
+
+```
+k apply -f serving/knative-service-knative-event-display.yaml
+k apply -f kafka/kafka-source-v1beta1----kube-service-knative-event-display.yaml
+```
+
+Cleanup:
+```
+k delete -f kafka/kafka-source-v1beta1----kube-service-knative-event-display.yaml
+k delete -f serving/knative-service-knative-event-display.yaml
+```
+
+### Create many KafkaSource instances
+
+```shell
+cat <<EOF | k apply -f -
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: knative-demo-topic-1
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 1
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: knative-demo-topic-2
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 1
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: knative-demo-topic-3
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 1
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: event-display-1
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: gcr.io/knative-releases/knative.dev/eventing/cmd/event_display
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: event-display-2
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: gcr.io/knative-releases/knative.dev/eventing/cmd/event_display
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: event-display-3
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: gcr.io/knative-releases/knative.dev/eventing/cmd/event_display
+---
+apiVersion: sources.knative.dev/v1beta1
+kind: KafkaSource
+metadata:
+  name: kafka-source-1
+  namespace: default
+spec:
+  consumerGroup: knative-group-1
+  bootstrapServers:
+  - my-cluster-kafka-bootstrap.kafka:9092 # note the kafka namespace
+  topics:
+  - knative-demo-topic-1
+  sink:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display-1
+---
+apiVersion: sources.knative.dev/v1beta1
+kind: KafkaSource
+metadata:
+  name: kafka-source-2
+  namespace: default
+spec:
+  consumerGroup: knative-group-2
+  bootstrapServers:
+  - my-cluster-kafka-bootstrap.kafka:9092 # note the kafka namespace
+  topics:
+  - knative-demo-topic-2
+  sink:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display-2
+---
+apiVersion: sources.knative.dev/v1beta1
+kind: KafkaSource
+metadata:
+  name: kafka-source-3
+  namespace: default
+spec:
+  consumerGroup: knative-group-3
+  bootstrapServers:
+  - my-cluster-kafka-bootstrap.kafka:9092 # note the kafka namespace
+  topics:
+  - knative-demo-topic-3
+  sink:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display-3
+EOF
+```
+
+Send events to Kafka topics:
+```shell
+k run kcat-test --image docker.io/edenhill/kcat:1.7.1 --command sleep 1000
+k exec --stdin --tty kcat-test -- /bin/sh
+for i in `seq 10`
+do
+  for j in `seq 3`
+  do
+    echo "Sending: Event $i-$j"
+    echo "Event $i-$j" | kcat -P -b my-cluster-kafka-bootstrap.kafka:9092 -t "knative-demo-topic-$j"
+    sleep 0.2
+  done
+done
+```
+
+Cleanup:
+
+```shell
+k delete ksvc -n default event-display-1
+k delete ksvc -n default event-display-2
+k delete ksvc -n default event-display-3
+k delete kafkasource -n default kafka-source-1
+k delete kafkasource -n default kafka-source-2
+k delete kafkasource -n default kafka-source-3
+k delete kafkatopic -n kafka knative-demo-topic-1
+k delete kafkatopic -n kafka knative-demo-topic-2
+k delete kafkatopic -n kafka knative-demo-topic-3
+k delete pod kcat-test
+```
+
+### KafkaBroker namespaced - event flow with trigger and pingSource
+
+```
+# create everything
+k apply -f kube/kube-service-knative-event-display.yaml
+k apply -f kafka-broker/kafka-broker-namespaced.yaml
+k apply -f kafka-broker/trigger-v1----kafka-broker-namespaced----kube-service-knative-event-display.yaml
+
+k apply -f kafka-broker/pingsource-v1-to-kafka-broker-namespaced.yaml
+
+stern -n default .
+```
+
+Cleanup:
+```
+k delete -f kafka-broker/pingsource-v1-to-kafka-broker-namespaced.yaml
+
+k delete -f kafka-broker/trigger-v1----kafka-broker-namespaced----kube-service-knative-event-display.yaml
+k delete -f kafka-broker/kafka-broker-namespaced.yaml
+k delete -f kube/kube-service-knative-event-display.yaml
 ```

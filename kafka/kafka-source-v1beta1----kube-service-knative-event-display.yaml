@@ -1,0 +1,30 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: knative-demo-topic
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 1
+#  config:
+#    retention.ms: 7200000
+#    segment.bytes: 1073741824
+---
+apiVersion: sources.knative.dev/v1beta1
+kind: KafkaSource
+metadata:
+  name: kafka-source
+  namespace: default
+spec:
+  consumerGroup: knative-group
+  bootstrapServers:
+  - my-cluster-kafka-bootstrap.kafka:9092 # note the kafka namespace
+  topics:
+  - knative-demo-topic
+  sink:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: event-display
