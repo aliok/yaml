@@ -543,11 +543,11 @@ k delete -f sandbox/kube-service-knative-event-display.yaml
 ### OpenShift Serverless - clean up
 
 ```shell
-k delete pingsources -A --all && \ 
-  k delete triggers -A --all && \ 
-  k delete brokers -A --all &&  \
-  k delete knativekafkas -A --all && \ 
-  k delete knativeservings -A --all && \ 
+k delete pingsources -A --all && \
+  k delete triggers -A --all && \
+  k delete brokers -A --all && \
+  k delete knativekafkas -A --all && \
+  k delete knativeservings -A --all && \
   k delete knativeeventings -A --all && \
   k delete subscriptions.operators.coreos.com -n openshift-serverless serverless-operator --ignore-not-found && \
   k delete csv -n openshift-serverless serverless-operator.v1.27.0 --ignore-not-found && \
