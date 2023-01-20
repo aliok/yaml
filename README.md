@@ -524,22 +524,6 @@ k delete -f kafka-broker/kafka-broker-namespaced.yaml
 k delete -f kube/kube-service-knative-event-display.yaml
 ```
 
-### Sandbox test - PingSource to Kube Service
-
-```shell
-k apply -f sandbox/kube-service-knative-event-display.yaml
-k apply -f sandbox/pingsource-v1-to-kube-service-knative-event-display.yaml
-
-stern -n aliok-dev .
-```
-
-Cleanup:
-```shell
-k delete -f sandbox/pingsource-v1-to-kube-service-knative-event-display.yaml
-k delete -f sandbox/kube-service-knative-event-display.yaml
-```
-
-
 ### OpenShift Serverless - clean up
 
 ```shell
