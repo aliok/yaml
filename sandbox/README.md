@@ -37,14 +37,12 @@ kind: Secret
 apiVersion: v1
 metadata:
   name: kafka-broker-secret
-  namespace: aliok-dev
+  namespace: "${NAMESPACE}"
 stringData:
-  bootstrap.servers: "${BOOTSTRAP_SERVER}"
+  user: "${CLIENT_ID}"
   password: "${CLIENT_SECRET}"
   protocol: SASL_SSL
   sasl.mechanism: PLAIN
-  topic.name: "${TOPIC}"
-  user: "${CLIENT_ID}"
 type: Opaque
 EOF
 
@@ -54,13 +52,12 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: kafka-broker-config
-  namespace: aliok-dev
+  namespace: "${NAMESPACE}"
 data:
   auth.secret.ref.name: kafka-broker-secret
   bootstrap.servers: "${BOOTSTRAP_SERVER}"
   default.topic.partitions: '1'
   default.topic.replication.factor: '1'
-  topic.name: "${TOPIC}"
 EOF
 
 # create Broker
@@ -72,21 +69,21 @@ metadata:
     eventing.knative.dev/broker.class: Kafka
     kafka.eventing.knative.dev/external.topic: "${TOPIC}"
   name: default
-  namespace: aliok-dev
+  namespace: "${NAMESPACE}"
 spec:
   config:
     apiVersion: v1
     kind: ConfigMap
     name: kafka-broker-config
-    namespace: aliok-dev
+    namespace: "${NAMESPACE}"
 EOF
 ```
 
 Clean up:
 ```shell
-k delete broker default -n aliok-dev
-k delete configmap kafka-broker-config -n aliok-dev
-k delete secret kafka-broker-secret -n aliok-dev
+k delete broker default -n "${NAMESPACE}"
+k delete configmap kafka-broker-config -n "${NAMESPACE}"
+k delete secret kafka-broker-secret -n "${NAMESPACE}"
 ```
 
 ### Sandbox test - existing broker - event flow with trigger and pingSource
@@ -98,7 +95,7 @@ k apply -f sandbox/trigger-v1----kafka-broker----kube-service-knative-event-disp
 
 k apply -f sandbox/pingsource-v1-to-kafka-broker.yaml
 
-stern -n aliok-dev .
+stern -n "${NAMESPACE}" .
 ```
 
 Cleanup:
@@ -114,7 +111,7 @@ k delete -f sandbox/kube-service-knative-event-display.yaml
 ```shell
 k apply -f sandbox/knative-service-prime-generator.yaml
 
-SVC_URL=$(k get ksvc prime-generator -n aliok-dev -o jsonpath='{.status.url}')
+SVC_URL=$(k get ksvc prime-generator -n "${NAMESPACE}" -o jsonpath='{.status.url}')
 
 hey -c 50 -z 10s "$SVC_URL/?sleep=3&upto=10000&memload=100"
 ```
