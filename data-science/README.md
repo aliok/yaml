@@ -95,3 +95,146 @@ Extensions,
 Data,
   {"instances": [[6.8,  2.8,  4.8,  1.4],[6.0,  3.4,  4.5,  1.6]]}
 ```
+
+## Drift detection
+See https://github.com/kserve/kserve/blob/master/docs/samples/drift-detection/alibi-detect/cifar10/cifar10_drift.ipynb
+
+Create namespace, broker, trigger, etc:
+```shell
+kubectl create namespace cifar10
+
+cat <<EOF | k apply -f -
+apiVersion: eventing.knative.dev/v1
+kind: broker
+metadata:
+ name: default
+ namespace: cifar10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-display
+  namespace: cifar10
+spec:
+  replicas: 1
+  selector:
+    matchLabels: &labels
+      app: hello-display
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+        - name: event-display
+          image: gcr.io/knative-releases/knative.dev/eventing-contrib/cmd/event_display
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: hello-display
+  namespace: cifar10
+spec:
+  selector:
+    app: hello-display
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+EOF
+```
+
+Create Inference service
+```shell
+cat <<EOF | k apply -f -
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "tfserving-cifar10"
+  namespace: cifar10
+spec:
+  predictor:
+    tensorflow:
+      storageUri: "gs://seldon-models/tfserving/cifar10/resnet32"
+    logger:
+      mode: all
+      url: http://broker-ingress.knative-eventing.svc.cluster.local/cifar10/default
+EOF
+```
+
+Create drift detector service:
+```shell
+cat <<EOF | k apply -f -
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: drift-detector
+  namespace: cifar10
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+    spec:
+      containers:
+      - image: seldonio/alibi-detect-server:0.0.2
+        imagePullPolicy: IfNotPresent
+        args:
+        - --model_name
+        - cifar10cd
+        - --http_port
+        - '8080'
+        - --protocol
+        - tensorflow.http
+        - --storage_uri
+        - gs://seldon-models/alibi-detect/cd/ks/cifar10
+        - --reply_url
+        - http://hello-display.cifar10
+        - --event_type
+        - org.kubeflow.serving.inference.outlier
+        - --event_source
+        - org.kubeflow.serving.cifar10cd
+        - DriftDetector
+        - --drift_batch_size
+        - '5000'
+EOF
+```
+
+Create drift detector service:
+```shell
+cat <<EOF | k apply -f -
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: drift-trigger
+  namespace: cifar10
+spec:
+  broker: default
+  filter:
+    attributes:
+      type: org.kubeflow.serving.inference.request
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: drift-detector
+      namespace: cifar10
+EOF
+```
+
+Now, do the port forwarding, as written above.
+
+Install Python dependencies:
+```shell
+python3 -m venv data-science/drift-detection
+source data-science/drift-detection/bin/activate
+# https://github.com/SeldonIO/alibi-detect/issues/375 and 387
+python3 -m pip install "alibi-detect>=0.4.0" "matplotlib>=3.1.1" "tqdm>=4.45.0" "notebook" "httplib2>=0.20.2" "tensorflow>=2.2.0, !=2.6.0, !=2.6.1, <2.13.0" "ipywidgets" 
+```
+
+```shell
+# start jupyter notebook
+jupyter notebook data-science/cifar10_drift.ipynb
+# jupyter notebook data-science/cifar10_drift.ipynb --no-browser --NotebookApp.token='' --NotebookApp.password=''
+```
+
+
