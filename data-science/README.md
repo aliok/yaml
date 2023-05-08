@@ -238,3 +238,25 @@ jupyter notebook data-science/cifar10_drift.ipynb
 ```
 
 
+## Drift Detection on OpenShift
+
+Go and do the things from the https://github.com/ReToCode/knative-kserve:
+- Installation with Istio + Mesh
+- Prerequisites of Testing KServe installation
+- Prerequisites of Testing KServe with Knative Eventing
+
+Then install Python dependencies:
+```shell
+python3 -m venv data-science/drift-detection
+source data-science/drift-detection/bin/activate
+# https://github.com/SeldonIO/alibi-detect/issues/375 and 387
+python3 -m pip install "alibi-detect>=0.4.0" "matplotlib>=3.1.1" "tqdm>=4.45.0" "notebook" "httplib2>=0.20.2" "tensorflow>=2.2.0, !=2.6.0, !=2.6.1, <2.13.0" "ipywidgets" 
+```
+
+```shell
+# start jupyter notebook
+jupyter notebook data-science/cifar10_drift_openshift.ipynb
+# jupyter notebook data-science/cifar10_drift_openshift.ipynb --no-browser --NotebookApp.token='' --NotebookApp.password=''
+```
+
+Rest is on the notebook.
