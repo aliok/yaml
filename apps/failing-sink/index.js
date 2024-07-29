@@ -55,4 +55,13 @@ function registerGracefulExit() {
     // catches "kill pid" (for example: nodemon restart)
     process.on('SIGUSR1', logExit);
     process.on('SIGUSR2', logExit);
+
+    process.on('unhandledRejection', (reason, p) => {
+        console.error(reason, 'Unhandled Rejection at Promise', p);
+        logExit();
+    });
+    process.on('uncaughtException', err => {
+        console.error(err, 'Uncaught Exception thrown');
+        logExit();
+    });
 }
