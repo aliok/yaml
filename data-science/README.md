@@ -260,3 +260,238 @@ jupyter notebook data-science/cifar10_drift_openshift.ipynb
 ```
 
 Rest is on the notebook.
+
+## End to end inference service example with Minio and Kafka - upstream
+
+Install KServe
+```shell
+curl -s "https://raw.githubusercontent.com/kserve/kserve/release-0.10/hack/quick_install.sh" | bash
+```
+
+Install Strimzi, Knative Serving, Eventing and Knative Kafka components:
+```shell
+# ./100_scripts/01-kn-serving.sh # serving comes within KServe above
+./100_scripts/02-kn-eventing.sh
+./100_scripts/03-strimzi.sh
+./100_scripts/04-kn-kafka-broker.sh
+```
+
+Install InferenceService addressable cluster role for Knative Kafka control plane, so that KafkaSource can resolve
+the address of an InferenceService:
+```shell
+cat <<EOF | k apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: inferenceservice-addressable-resolver
+  labels:
+    contrib.eventing.knative.dev/release: devel
+    duck.knative.dev/addressable: "true"
+# Do not use this role directly. These rules will be added to the "addressable-resolver" role.
+rules:
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - inferenceservices
+      - inferenceservices/status
+    verbs:
+      - get
+      - list
+      - watch
+EOF
+````
+
+Install Minio
+```shell
+cat <<EOF | k apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: minio
+  name: minio
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - args:
+            - server
+            - /data
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: minio
+            - name: MINIO_SECRET_KEY
+              value: minio123
+          image: minio/minio:RELEASE.2020-10-18T21-54-12Z
+          imagePullPolicy: IfNotPresent
+          name: minio
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: minio
+  name: minio-service
+spec:
+  ports:
+    - port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: minio
+  type: ClusterIP
+EOF
+```
+
+Install Minio client
+```shell
+brew install minio/stable/mc
+```
+
+Run port forwarding command in a different terminal
+```shell
+kubectl port-forward $(kubectl get pod --selector="app=minio" --output jsonpath='{.items[0].metadata.name}') 9000:9000
+mc config host add myminio http://127.0.0.1:9000 minio minio123
+```
+
+Create buckets mnist for uploading images and digit-[0-9] for classification.
+```shell
+mc mb myminio/mnist
+mc mb myminio/digit-0
+mc mb myminio/digit-1
+mc mb myminio/digit-2
+mc mb myminio/digit-3
+mc mb myminio/digit-4
+mc mb myminio/digit-5
+mc mb myminio/digit-6
+mc mb myminio/digit-7
+mc mb myminio/digit-8
+mc mb myminio/digit-9
+```
+
+Setup event notification to publish events to kafka.
+
+
+Setup bucket event notification with kafka
+```shell
+mc admin config set myminio notify_kafka:1 tls_skip_verify="off"  queue_dir="" queue_limit="0" sasl="off" sasl_password="" sasl_username="" tls_client_auth="0" tls="off" client_tls_cert="" client_tls_key="" brokers="my-cluster-kafka-bootstrap.kafka:9092" topic="mnist" version=""
+# Restart minio
+# Note: this kills port forwarding done above, so, you need to run it again
+mc admin service restart myminio
+# Setup event notification when putting images to the bucket
+mc event add myminio/mnist arn:minio:sqs::1:kafka -p --event put --suffix .png
+```
+
+Upload the mnist model to Minio¶
+```shell
+mkdir -p /tmp/mnist_model
+gsutil cp -r gs://kfserving-examples/models/tensorflow/mnist /tmp/mnist_model
+mc cp -r /tmp/mnist_model/mnist myminio/
+```
+
+Create S3 Secret for Minio and attach to Service Account¶
+```shell
+cat <<EOF | k apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+  annotations:
+    serving.kserve.io/s3-endpoint: minio-service:9000 # replace with your s3 endpoint
+    serving.kserve.io/s3-usehttps: "0" # by default 1, for testing with minio you need to set to 0
+type: Opaque
+data:
+  AWS_ACCESS_KEY_ID: bWluaW8=
+  AWS_SECRET_ACCESS_KEY: bWluaW8xMjM=
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+secrets:
+  - name: mysecret
+EOF
+```
+
+Create the InferenceService
+```shell
+cat <<EOF | k apply -f -
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: mnist
+spec:
+  predictor:
+    minReplicas: 1
+    model:
+      modelFormat:
+        name: tensorflow
+      resources:
+        limits:
+          cpu: 100m
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 1Gi
+      runtimeVersion: 1.14.0
+      storageUri: s3://mnist
+  transformer:
+    minReplicas: 1
+    containers:
+      - image: aliok/mnist-transformer:latest
+        name: kserve-container
+        resources:
+          limits:
+            cpu: 100m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 1Gi
+EOF
+```
+
+Watch inference service pods:
+```shell
+kubectl get pods -l serving.kserve.io/inferenceservice=mnist
+```
+
+Create KafkaSource:
+```shell
+cat <<EOF | k apply -f -
+apiVersion: sources.knative.dev/v1beta1
+kind: KafkaSource
+metadata:
+  name: kafka-source
+spec:
+  consumerGroup: knative-group
+  bootstrapServers:
+    - my-cluster-kafka-bootstrap.kafka:9092
+  topics:
+    - mnist
+  sink:
+    ref:
+      apiVersion: serving.kserve.io/v1beta1
+      kind: InferenceService
+      name: mnist
+    uri: /v1/models/mnist:predict
+EOF
+```
+
+Upload a digit image to Minio mnist bucket
+```shell
+mc cp test_0.png myminio/mnist
+```
