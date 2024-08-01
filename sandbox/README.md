@@ -109,9 +109,12 @@ k delete -f sandbox/kube-service-knative-event-display.yaml
 ### Sandbox test - Knative Service
 
 ```shell
+NAMESPACE=aliok-dev
+
 k apply -f sandbox/knative-service-prime-generator.yaml
 
 SVC_URL=$(k get ksvc prime-generator -n "${NAMESPACE}" -o jsonpath='{.status.url}')
+echo $SVC_URL
 
 hey -c 50 -z 10s "$SVC_URL/?sleep=3&upto=10000&memload=100"
 ```
