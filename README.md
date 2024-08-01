@@ -527,14 +527,74 @@ k delete -f kube/kube-service-knative-event-display.yaml
 ### OpenShift Serverless - clean up
 
 ```shell
-k delete pingsources -A --all --ignore-not-found && \
-  k delete triggers -A --all --ignore-not-found && \
-  k delete brokers -A --all --ignore-not-found && \
   k delete knativekafkas -A --all --ignore-not-found && \
   k delete knativeservings -A --all --ignore-not-found && \
   k delete knativeeventings -A --all --ignore-not-found && \
   k delete subscriptions.operators.coreos.com -n openshift-serverless serverless-operator --ignore-not-found && \
   k delete csv -n openshift-serverless serverless-operator.v1.27.0 --ignore-not-found && \
   k delete csv -n openshift-serverless serverless-operator.v1.28.0 --ignore-not-found && \
+  k delete csv -n openshift-serverless serverless-operator.v1.29.0 --ignore-not-found && \
+  k delete csv -n openshift-serverless serverless-operator.v1.30.0 --ignore-not-found && \
+  k delete csv -n openshift-serverless serverless-operator.v1.31.0 --ignore-not-found && \
   k delete catalogsources.operators.coreos.com -n openshift-marketplace serverless-operator --ignore-not-found
+```
+
+
+### Event Type auto creation
+
+```shell
+./100_scripts/02-kn-eventing.sh
+
+# https://knative.dev/docs/eventing/experimental-features/eventtype-auto-creation/
+
+cat <<EOF | k apply -f -
+    apiVersion: v1
+    data:
+      delivery-retryafter: disabled
+      delivery-timeout: enabled
+      eventtype-auto-create: enabled
+      kreference-group: disabled
+      kreference-mapping: disabled
+      new-trigger-filters: disabled
+      transport-encryption: disabled
+    kind: ConfigMap
+    metadata:
+      name: config-features
+      namespace: knative-eventing
+EOF
+
+k apply -n default -f eventing/broker-v1-default.yaml
+k apply -n default -f eventing/pingsource-v1-to-broker-v1.yaml
+k apply -n default -f eventing/api-server-source-v1-to-broker-v1.yaml
+k apply -n default -f eventing/trigger-v1-to-kube-svc-standalone-request-logger.yaml
+k apply -n default -f kube/kube-service.yaml
+
+
+k get brokers -A
+k get pingsources -A
+k get apiserversources -A
+k get triggers -A
+k get services standalone-request-logger -n default
+
+
+k get eventtypes -A
+```
+
+### Backstage demo
+
+```shell
+k apply -f scenarios/backstage/000-auto-event-type-creation.yaml
+k apply -f scenarios/backstage/100-broker.yaml
+k apply -f scenarios/backstage/200-payment-event-generator.yaml
+k apply -f scenarios/backstage/210-payment-processor.yaml
+k apply -f scenarios/backstage/300-manual-event-type.yaml
+k apply -f scenarios/backstage/400-fraud-detector.yaml
+k apply -f scenarios/backstage/500-fraud-logger.yaml
+
+k delete -f scenarios/backstage/500-fraud-logger.yaml
+k delete -f scenarios/backstage/400-fraud-detector.yaml
+k delete -f scenarios/backstage/300-manual-event-type.yaml
+k delete -f scenarios/backstage/210-payment-processor.yaml
+k delete -f scenarios/backstage/200-payment-event-generator.yaml
+k delete -f scenarios/backstage/100-broker.yaml
 ```

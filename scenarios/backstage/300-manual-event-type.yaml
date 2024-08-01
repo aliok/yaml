@@ -1,0 +1,25 @@
+apiVersion: eventing.knative.dev/v1beta3
+kind: EventType
+metadata:
+  name: com.mycompany.paymentprocessed
+  namespace: default
+spec:
+  attributes:
+    - name: specversion
+      required: true
+    - name: id
+      required: true
+    - name: type
+      required: true
+      value: com.mycompany.paymentprocessed
+    - name: source
+      required: true
+      value: http://example.com/source
+    - name: schemadata
+      required: false
+      value: http://example.com/schema
+  reference:
+    apiVersion: eventing.knative.dev/v1
+    kind: Broker
+    name: default
+  description: "Payment processed"

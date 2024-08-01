@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-features
+  namespace: knative-eventing
+data:
+  eventtype-auto-create: "enabled"
+  #
+  authentication-oidc: "disabled"
+  cross-namespace-event-links: "disabled"
+  default-authorization-mode: "allow-same-namespace"
+  delivery-retryafter: "disabled"
+  delivery-timeout: "enabled"
+  kreference-group: "disabled"
+  kreference-mapping: "disabled"
+  new-apiserversource-filters: "disabled"
+  transport-encryption: "disabled"
