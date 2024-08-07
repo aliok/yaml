@@ -590,11 +590,19 @@ k apply -f scenarios/backstage/210-payment-processor.yaml
 k apply -f scenarios/backstage/300-manual-event-type.yaml
 k apply -f scenarios/backstage/400-fraud-detector.yaml
 k apply -f scenarios/backstage/500-fraud-logger.yaml
+k apply -f scenarios/backstage/900-backend-sa.yaml
 
+k delete -f scenarios/backstage/900-backend-sa.yaml
 k delete -f scenarios/backstage/500-fraud-logger.yaml
 k delete -f scenarios/backstage/400-fraud-detector.yaml
 k delete -f scenarios/backstage/300-manual-event-type.yaml
 k delete -f scenarios/backstage/210-payment-processor.yaml
 k delete -f scenarios/backstage/200-payment-event-generator.yaml
 k delete -f scenarios/backstage/100-broker.yaml
+```
+
+```shell
+export KUBE_SA_TOKEN=$(kubectl get secret my-eventmesh-backend-secret -o jsonpath='{.data.token}' | base64 --decode)
+
+curl -k -H "Authorization: Bearer $KUBE_SA_TOKEN" -X GET localhost:8080
 ```

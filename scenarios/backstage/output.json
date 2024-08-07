@@ -1,0 +1,95 @@
+{
+  "eventTypes": [
+    {
+      "namespace": "default",
+      "name": "com.mycompany.paymentprocessed",
+      "type": "com.mycompany.paymentprocessed",
+      "uid": "ce4244b2-832f-4aa0-ae71-ac2124399495",
+      "description": "Payment processed",
+      "schemaURL": "http://example.com/schema",
+      "annotations": {
+        "eventing.knative.dev/creator": "system:admin",
+        "eventing.knative.dev/lastModifier": "system:admin"
+      },
+      "reference": "default/default"
+    },
+    {
+      "namespace": "default",
+      "name": "et-default-404bf12d3fc2253016f83f5261eeb5af",
+      "type": "com.mycompany.frauddetected",
+      "uid": "a3f3bb92-cff2-4351-94dd-681c57d06c2e",
+      "description": "Event Type auto-created by controller",
+      "annotations": {
+        "eventing.knative.dev/creator": "system:serviceaccount:knative-eventing:mt-broker-ingress",
+        "eventing.knative.dev/lastModifier": "system:serviceaccount:knative-eventing:mt-broker-ingress"
+      },
+      "reference": "default/default"
+    },
+    {
+      "namespace": "default",
+      "name": "et-default-4ee5d4a366aaa3541df229450e6f87f6",
+      "type": "com.mycompany.paymentreceived",
+      "uid": "67843f93-9d51-4974-b703-630ed67e2359",
+      "description": "Event Type auto-created by controller",
+      "annotations": {
+        "eventing.knative.dev/creator": "system:serviceaccount:knative-eventing:mt-broker-ingress",
+        "eventing.knative.dev/lastModifier": "system:serviceaccount:knative-eventing:mt-broker-ingress"
+      },
+      "reference": "default/default"
+    },
+    {
+      "namespace": "default",
+      "name": "et-default-51975f3ed289608146f78747e2ba044b",
+      "type": "com.mycompany.paymentprocessed",
+      "uid": "f8639dfc-6d98-47d3-98ec-2a3ee5409f3c",
+      "description": "Event Type auto-created by controller",
+      "annotations": {
+        "eventing.knative.dev/creator": "system:serviceaccount:knative-eventing:mt-broker-ingress",
+        "eventing.knative.dev/lastModifier": "system:serviceaccount:knative-eventing:mt-broker-ingress"
+      },
+      "reference": "default/default"
+    },
+    {
+      "namespace": "default",
+      "name": "et-fraud-detector-trigger-b078925663f9e4ffa24033648efa6b1b",
+      "type": "com.mycompany.frauddetected",
+      "uid": "a93f3b73-2826-4522-9a3a-cc394c4353cb",
+      "description": "Event Type auto-created by controller",
+      "annotations": {
+        "eventing.knative.dev/creator": "system:serviceaccount:knative-eventing:mt-broker-filter",
+        "eventing.knative.dev/lastModifier": "system:serviceaccount:knative-eventing:mt-broker-filter"
+      },
+      "reference": "default/fraud-detector-trigger"
+    },
+    {
+      "namespace": "default",
+      "name": "et-payment-processor-trigger-7343b81e5a3faae3cdfa8608902d04be",
+      "type": "com.mycompany.paymentprocessed",
+      "uid": "e313c1d8-4173-462c-913e-4ac746cc725e",
+      "description": "Event Type auto-created by controller",
+      "annotations": {
+        "eventing.knative.dev/creator": "system:serviceaccount:knative-eventing:mt-broker-filter",
+        "eventing.knative.dev/lastModifier": "system:serviceaccount:knative-eventing:mt-broker-filter"
+      },
+      "reference": "default/payment-processor-trigger"
+    }
+  ],
+  "brokers": [
+    {
+      "namespace": "default",
+      "name": "default",
+      "uid": "8b20a849-5324-4123-a425-d89e9780b52a",
+      "annotations": {
+        "eventing.knative.dev/broker.class": "MTChannelBasedBroker",
+        "eventing.knative.dev/creator": "system:admin",
+        "eventing.knative.dev/lastModifier": "system:admin"
+      },
+      "providedEventTypes": [
+        "default/com.mycompany.paymentprocessed",
+        "default/et-default-404bf12d3fc2253016f83f5261eeb5af",
+        "default/et-default-4ee5d4a366aaa3541df229450e6f87f6",
+        "default/et-default-51975f3ed289608146f78747e2ba044b"
+      ]
+    }
+  ]
+}

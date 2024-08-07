@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-eventmesh-backend-service-account
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: my-eventmesh-backend-cluster-role
+rules:
+  # permissions for eventtypes, brokers and triggers
+  - apiGroups:
+      - "eventing.knative.dev"
+    resources:
+      - brokers
+      - eventtypes
+      - triggers
+    verbs:
+      - get
+      - list
+      - watch
+  # permissions for core sources
+  - apiGroups:
+      - "sources.knative.dev"
+    resources:
+      - apiserversources
+      - containersources
+      - pingsources
+      - sinkbindings
+    verbs:
+      - get
+      - list
+  # permissions to get subscribers for triggers
+  # as subscribers can be any resource, we need to give access to all resources
+  # we fetch subscribers one by one, we only need `get` verb
+  - apiGroups:
+      - "*"
+    resources:
+      - "*"
+    verbs:
+      - get
+  # permmissions for CRD fetching (e.g. for sources)
+  - apiGroups:
+      - "apiextentions.k8s.io"
+    resources:
+      - "customresourcedefinitions"
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: my-eventmesh-backend-cluster-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: my-eventmesh-backend-service-account
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: my-eventmesh-backend-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-eventmesh-backend-secret
+  namespace: default
+  annotations:
+    kubernetes.io/service-account.name: my-eventmesh-backend-service-account
+type: kubernetes.io/service-account-token
